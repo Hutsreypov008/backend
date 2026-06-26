@@ -7,7 +7,6 @@ use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 
-
 Route::get('/', function () {
     return view('welcome');
 });
