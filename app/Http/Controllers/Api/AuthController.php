@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -67,14 +68,31 @@ class AuthController extends Controller
     public function updateProfile(Request $request)
     {
         $user = $request->user();
+        
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
+
+        // Handle profile image upload
+        if ($request->hasFile('profile_image')) {
+            // Delete old profile image if exists
+            if ($user->profile_image) {
+                Storage::disk('public')->delete('profile-images/' . $user->profile_image);
+            }
+
+            $image = $request->file('profile_image');
+            $filename = time() . '_' . uniqid() . '.' . $image->getClientOriginalExtension();
+            $image->storeAs('profile-images', $filename, 'public');
+            $validated['profile_image'] = $filename;
+        }
+
         $user->update($validated);
+        
         return response()->json([
             'message' => 'Profile updated successfully.',
-            'user' => $user,
+            'user' => $user->fresh(),
         ]);
     }
 

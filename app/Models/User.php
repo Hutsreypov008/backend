@@ -24,6 +24,7 @@ class User extends Authenticatable
         'email',
         'password',
         'is_admin',
+        'profile_image',
     ];
 
     /**
@@ -48,6 +49,20 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the URL for the profile image.
+     */
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        if (!$this->profile_image) {
+            return null;
+        }
+
+        return asset('storage/profile-images/' . $this->profile_image);
+    }
+
+    protected $appends = ['profile_image_url'];
 
     public function wishlists()
     {

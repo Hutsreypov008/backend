@@ -22,4 +22,23 @@ class OrderController extends Controller
 
         return view('admin.orders.show', compact('order'));
     }
+
+    public function updateStatus(Order $order)
+    {
+        $statusFlow = [
+            'pending' => 'preparing',
+            'preparing' => 'completed',
+        ];
+
+        $currentStatus = $order->status ?? 'pending';
+        $nextStatus = $statusFlow[$currentStatus] ?? null;
+
+        if ($nextStatus && $nextStatus !== $currentStatus) {
+            $order->update(['status' => $nextStatus]);
+
+            return redirect()->back()->with('success', 'Order status updated to ' . ucfirst($nextStatus));
+        }
+
+        return redirect()->back()->with('info', 'Order is already ' . ucfirst($currentStatus) . '.');
+    }
 }

@@ -107,4 +107,21 @@ class CartController extends Controller
             'message' => 'Product removed from cart.',
         ]);
     }
+
+    public function destroyBatch(Request $request)
+    {
+        $validated = $request->validate([
+            'product_ids' => 'required|array',
+            'product_ids.*' => 'required|exists:products,id',
+        ]);
+
+        $count = Cart::where('user_id', $request->user()->id)
+            ->whereIn('product_id', $validated['product_ids'])
+            ->delete();
+
+        return response()->json([
+            'message' => "{$count} item(s) removed from cart.",
+            'count' => $count,
+        ]);
+    }
 }

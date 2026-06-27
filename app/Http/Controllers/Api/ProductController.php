@@ -8,8 +8,13 @@ use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
-    public function index(Request $request){
-        $products = Product::with('category')
+    public function index(Request $request)
+    {
+        // Support both ?limit=N for homepage and ?per_page=N for paginated listing
+        $limit = $request->input('limit');
+        $perPage = $request->input('per_page', 50);
+
+        $query = Product::with('category')
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', '%' . $search . '%')
                     ->orWhere('description', 'like', '%' . $search . '%');
@@ -17,42 +22,21 @@ class ProductController extends Controller
             ->when($request->category_id, function ($query, $categoryId) {
                 $query->where('category_id', $categoryId);
             })
-            ->latest()
-            ->get()
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'category_id' => $product->category_id,
-                    'category' => $product->category,
-                    'name' => $product->name,
-                    'description' => $product->description,
-                    'price' => $product->price,
-                    'stock' => $product->stock,
-                    'image' => $product->image,
-                    'image_url' => $product->image ? asset('storage/' . $product->image) : null,
-                    'created_at' => $product->created_at,
-                    'updated_at' => $product->updated_at,
-                ];
-            });
+            ->latest();
+
+        if ($limit) {
+            $products = $query->limit((int) $limit)->get();
+        } else {
+            $products = $query->paginate((int) $perPage);
+        }
 
         return response()->json($products);
     }
 
-    public function show(Product $product){
+    public function show(Product $product)
+    {
         $product->load('category');
 
-        return response()->json([
-            'id' => $product->id,
-            'category_id' => $product->category_id,
-            'category' => $product->category,
-            'name' => $product->name,
-            'description' => $product->description,
-            'price' => $product->price,
-            'stock' => $product->stock,
-            'image' => $product->image,
-            'image_url' => $product->image ? asset('storage/' . $product->image) : null,
-            'created_at' => $product->created_at,
-            'updated_at' => $product->updated_at,
-        ]);
+        return response()->json($product);
     }
 }

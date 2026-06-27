@@ -337,10 +337,21 @@
                     <i class="bi bi-search text-muted"></i>
                     <input type="text" placeholder="Search...">
                 </div>
+                @php
+                    $currentUser = Auth::user();
+                    $avatarInitial = $currentUser ? strtoupper(substr($currentUser->name, 0, 1)) : 'A';
+                    $avatarColor = '#6C63FF';
+                @endphp
                 <div class="user-actions">
                     <i class="bi bi-bell"></i>
-                    <div class="user-avatar">A</div>
-                    <span class="fw-semibold" style="font-size: 0.9rem;">Admin</span>
+                    <div class="user-avatar" style="background: {{ $currentUser && $currentUser->profile_image ? 'transparent' : $avatarColor }};">
+                        @if($currentUser && $currentUser->profile_image)
+                            <img src="{{ $currentUser->profile_image_url }}" alt="{{ $currentUser->name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        @else
+                            {{ $avatarInitial }}
+                        @endif
+                    </div>
+                    <span class="fw-semibold" style="font-size: 0.9rem;">{{ $currentUser ? $currentUser->name : 'Admin' }}</span>
                 </div>
             </div>
 

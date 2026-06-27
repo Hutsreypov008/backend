@@ -30,11 +30,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/wishlist', [WishlistController::class, 'index']);
     Route::post('/wishlist', [WishlistController::class, 'store']);
     Route::delete('/wishlist/{product}', [WishlistController::class, 'destroy']);
+    Route::post('/wishlist/batch-delete', [WishlistController::class, 'destroyBatch']);
 
     Route::get('/cart', [CartController::class, 'index']);
     Route::post('/cart', [CartController::class, 'store']);
     Route::put('/cart/{product}', [CartController::class, 'update']);
     Route::delete('/cart/{product}', [CartController::class, 'destroy']);
+    Route::post('/cart/batch-delete', [CartController::class, 'destroyBatch']);
 
     Route::post('/checkout', [OrderController::class, 'checkout']);
     Route::get('/orders', [OrderController::class, 'index']);
