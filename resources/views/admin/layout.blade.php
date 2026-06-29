@@ -314,6 +314,17 @@
                     <i class="bi bi-people-fill"></i>
                     Users
                 </a>
+                <a class="nav-link {{ request()->routeIs('admin.reviews.*') ? 'active' : '' }}" href="{{ route('admin.reviews.index') }}">
+                    <i class="bi bi-star-fill"></i>
+                    Reviews
+                </a>
+
+                <div style="border-top: 1px solid var(--border-color); margin: 1rem 0; padding-top: 0.5rem;"></div>
+
+                <a class="nav-link {{ request()->routeIs('admin.profile.*') ? 'active' : '' }}" href="{{ route('admin.profile.edit') }}">
+                    <i class="bi bi-person-circle"></i>
+                    My Profile
+                </a>
             </nav>
 
             <div class="mt-auto">
@@ -344,14 +355,16 @@
                 @endphp
                 <div class="user-actions">
                     <i class="bi bi-bell"></i>
-                    <div class="user-avatar" style="background: {{ $currentUser && $currentUser->profile_image ? 'transparent' : $avatarColor }};">
-                        @if($currentUser && $currentUser->profile_image)
-                            <img src="{{ $currentUser->profile_image_url }}" alt="{{ $currentUser->name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
-                        @else
-                            {{ $avatarInitial }}
-                        @endif
-                    </div>
-                    <span class="fw-semibold" style="font-size: 0.9rem;">{{ $currentUser ? $currentUser->name : 'Admin' }}</span>
+                    <a href="{{ route('admin.profile.edit') }}" class="d-flex align-items-center gap-2 text-decoration-none" title="Edit Profile">
+                        <div class="user-avatar" style="background: {{ $currentUser && $currentUser->profile_image ? 'transparent' : $avatarColor }}; cursor: pointer;">
+                            @if($currentUser && $currentUser->profile_image)
+                                <img src="{{ $currentUser->profile_image_url }}" alt="{{ $currentUser->name }}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                            @else
+                                {{ $avatarInitial }}
+                            @endif
+                        </div>
+                        <span class="fw-semibold" style="font-size: 0.9rem; color: var(--text-dark);">{{ $currentUser ? $currentUser->name : 'Admin' }}</span>
+                    </a>
                 </div>
             </div>
 

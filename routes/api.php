@@ -15,6 +15,7 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
 Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+Route::post('/reset-password-direct', [AuthController::class, 'resetPasswordDirect']);
 
 //===============Category and product=================================
 Route::get('/categories', [CategoryController::class, 'index']);
@@ -26,7 +27,7 @@ Route::get('/products/{product}/reviews', [ReviewController::class, 'index']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/profile', [AuthController::class, 'profile']);
-    Route::put('/profile', [AuthController::class, 'updateProfile']);
+    Route::post('/profile', [AuthController::class, 'updateProfile']);
     Route::put('/change-password', [AuthController::class, 'changePassword']);
 
     Route::get('/wishlist', [WishlistController::class, 'index']);

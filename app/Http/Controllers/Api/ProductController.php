@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Laravel\Sanctum\PersonalAccessToken;
 
 class ProductController extends Controller
 {
@@ -33,9 +34,20 @@ class ProductController extends Controller
         return response()->json($products);
     }
 
-    public function show(Product $product)
+    public function show(Request $request, Product $product)
     {
         $product->load('category');
+
+        // Check if the user is authenticated (route is public, so manually check Bearer token)
+        $isAuthenticated = false;
+        if ($token = $request->bearerToken()) {
+            $accessToken = PersonalAccessToken::findToken($token);
+            if ($accessToken) {
+                $isAuthenticated = true;
+            }
+        }
+
+        $product->can_review = $isAuthenticated;
 
         return response()->json($product);
     }

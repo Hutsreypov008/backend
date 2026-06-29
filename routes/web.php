@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Admin\ProfileController as AdminProfileController;
+use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
@@ -25,8 +27,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/orders/{order}', [AdminOrderController::class, 'show'])->name('orders.show');
         Route::patch('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])->name('orders.status');
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
+
+        Route::get('/profile', [AdminProfileController::class, 'edit'])->name('profile.edit');
+        Route::put('/profile', [AdminProfileController::class, 'update'])->name('profile.update');
+
+        Route::get('/reviews', [AdminReviewController::class, 'index'])->name('reviews.index');
+        Route::get('/reviews/latest', [AdminReviewController::class, 'latest'])->name('reviews.latest');
+        Route::delete('/reviews/{review}', [AdminReviewController::class, 'destroy'])->name('reviews.destroy');
     });
 });
+
+// ============= Google OAuth Routes =============
+Route::get('/auth/google/redirect', [App\Http\Controllers\Api\SocialAuthController::class, 'redirectToGoogle'])->name('auth.google.redirect');
+Route::get('/auth/google/callback', [App\Http\Controllers\Api\SocialAuthController::class, 'handleGoogleCallback'])->name('auth.google.callback');
 
 // Vue SPA catch-all — serves the built Vue app for root and all unmatched frontend routes
 Route::get('/{any?}', function () {

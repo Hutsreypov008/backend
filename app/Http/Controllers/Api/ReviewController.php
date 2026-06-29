@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\Review;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReviewController extends Controller
 {
@@ -15,6 +16,22 @@ class ReviewController extends Controller
             ->with('user:id,name')
             ->latest()
             ->get();
+
+        // Check which reviewers have actually purchased this product
+        if ($reviews->isNotEmpty()) {
+            $reviewUserIds = $reviews->pluck('user_id')->unique();
+
+            $purchasedUserIds = DB::table('orders')
+                ->join('order_items', 'orders.id', '=', 'order_items.order_id')
+                ->whereIn('orders.user_id', $reviewUserIds)
+                ->where('order_items.product_id', $product->id)
+                ->pluck('orders.user_id')
+                ->unique();
+
+            $reviews->each(function ($review) use ($purchasedUserIds) {
+                $review->purchased = $purchasedUserIds->contains($review->user_id);
+            });
+        }
 
         return response()->json($reviews);
     }

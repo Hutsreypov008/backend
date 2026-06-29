@@ -171,4 +171,35 @@ class AuthController extends Controller
             'message' => 'Password changed successfully.',
         ]);
     }
+
+    /**
+     * Direct password reset without email token verification.
+     * Intended for development/demo environments only.
+     */
+    public function resetPasswordDirect(Request $request)
+    {
+        // Safety guard: never allow direct resets in production
+        if (app()->environment('production')) {
+            return response()->json([
+                'message' => 'This endpoint is not available in production.',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::where('email', $validated['email'])->first();
+        $user->forceFill([
+            'password' => $validated['password'],
+            'remember_token' => Str::random(60),
+        ])->save();
+
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Password has been reset successfully.',
+        ]);
+    }
 }
