@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 //=============Register and Login=======================
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 //===============Category and product=================================
 Route::get('/categories', [CategoryController::class, 'index']);

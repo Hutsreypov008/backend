@@ -7,14 +7,6 @@ use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
-
-Route::get('/login', function () {
-    return redirect()->route('admin.login');
-})->name('login');
-
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
@@ -35,3 +27,13 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/users', [AdminUserController::class, 'index'])->name('users.index');
     });
 });
+
+// Vue SPA catch-all — serves the built Vue app for root and all unmatched frontend routes
+Route::get('/{any?}', function () {
+    $vuePath = base_path('../Frontend/dist/index.html');
+    if (file_exists($vuePath)) {
+        return response()->file($vuePath);
+    }
+    // Fallback to Vite dev server if Vue app is not built
+    return redirect(env('FRONTEND_URL', 'http://localhost:5173'));
+})->where('any', '.*');
