@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\CartController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReviewController;
+use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
 use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,5 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/products/{product}/reviews', [ReviewController::class, 'store']);
 
-    
+    Route::get('/notifications', [ApiNotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [ApiNotificationController::class, 'markRead']);
+    Route::post('/notifications/read-all', [ApiNotificationController::class, 'markAllRead']);
 });

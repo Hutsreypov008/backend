@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Notification;
 use App\Models\Order;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,18 @@ class OrderController extends Controller
 
         if ($nextStatus && $nextStatus !== $currentStatus) {
             $order->update(['status' => $nextStatus]);
+
+            // Notify the user about the status change
+            Notification::create([
+                'user_id' => $order->user_id,
+                'order_id' => $order->id,
+                'type' => 'order_status',
+                'data' => [
+                    'order_id' => $order->id,
+                    'previous_status' => $currentStatus,
+                    'new_status' => $nextStatus,
+                ],
+            ]);
 
             return redirect()->back()->with('success', 'Order status updated to ' . ucfirst($nextStatus));
         }

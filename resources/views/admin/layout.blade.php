@@ -354,7 +354,21 @@
                     $avatarColor = '#6C63FF';
                 @endphp
                 <div class="user-actions">
-                    <i class="bi bi-bell"></i>
+                    <div class="notification-group" style="position: relative;">
+                        <button id="notif-bell-btn" class="btn-notif-bell" title="Notifications" style="position: relative; background: none; border: none; padding: 6px; border-radius: 10px; cursor: pointer; color: var(--text-muted); transition: all 0.2s ease;" onclick="toggleNotifDropdown()">
+                            <i class="bi bi-bell" style="font-size: 1.2rem;"></i>
+                            <span id="notif-badge" class="notif-badge" style="display: none; position: absolute; top: 0; right: 0; background: #dc3545; color: white; font-size: 0.6rem; font-weight: 700; min-width: 18px; height: 18px; border-radius: 50%; align-items: center; justify-content: center; border: 2px solid white;"></span>
+                        </button>
+                        <div id="notif-dropdown" class="notif-dropdown" style="display: none; position: absolute; top: calc(100% + 8px); right: 0; background: white; border-radius: 14px; box-shadow: 0 12px 40px rgba(0,0,0,0.15); min-width: 340px; max-width: 400px; border: 1px solid #f0f0f5; z-index: 1000; overflow: hidden;">
+                            <div style="padding: 0.85rem 1rem; border-bottom: 1px solid #f0f0f5; display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 0.88rem; color: var(--text-dark);">Notifications</strong>
+                                <button id="notif-mark-read-btn" onclick="markAllRead()" style="background: none; border: none; color: #6C63FF; font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 0;">Mark all read</button>
+                            </div>
+                            <div id="notif-list" style="max-height: 300px; overflow-y: auto;">
+                                <div style="padding: 1.5rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;">Loading...</div>
+                            </div>
+                        </div>
+                    </div>
                     <a href="{{ route('admin.profile.edit') }}" class="d-flex align-items-center gap-2 text-decoration-none" title="Edit Profile">
                         <div class="user-avatar" style="background: {{ $currentUser && $currentUser->profile_image ? 'transparent' : $avatarColor }}; cursor: pointer;">
                             @if($currentUser && $currentUser->profile_image)
@@ -384,5 +398,223 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    {{-- Notification Polling & Browser Notifications --}}
+    <script>
+        let lastNotifId = 0;
+        let notifPollInterval = null;
+        let notifDropdownOpen = false;
+
+        function showNotifBadge(count) {
+            const badge = document.getElementById('notif-badge');
+            if (count > 0) {
+                badge.style.display = 'flex';
+                badge.textContent = count > 99 ? '99+' : count;
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        function toggleNotifDropdown() {
+            const dropdown = document.getElementById('notif-dropdown');
+            notifDropdownOpen = !notifDropdownOpen;
+            dropdown.style.display = notifDropdownOpen ? 'block' : 'none';
+            if (notifDropdownOpen) {
+                fetchNotifs();
+            }
+        }
+
+        function fetchNotifs() {
+            fetch('{{ route('admin.notifications.index') }}')
+                .then(res => res.json())
+                .then(data => {
+                    showNotifBadge(data.unread_count);
+                    renderNotifList(data.notifications);
+                    if (data.notifications.length > 0) {
+                        lastNotifId = Math.max(...data.notifications.map(n => n.id));
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function renderNotifList(notifications) {
+            const list = document.getElementById('notif-list');
+            if (notifications.length === 0) {
+                list.innerHTML = '<div style="padding: 2rem 1rem; text-align: center; color: var(--text-muted); font-size: 0.85rem;"><div style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;">🔔</div>No notifications yet</div>';
+                return;
+            }
+            list.innerHTML = notifications.map(n => {
+                const data = typeof n.data === 'string' ? JSON.parse(n.data) : n.data;
+                const isNew = !n.is_read;
+                let html = '';
+                if (n.type === 'new_order') {
+                    html = `
+                        <strong style="color: #6C63FF;">New Order #${data.order_id}</strong>
+                        <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">
+                            {{ '$' }}${parseFloat(data.total_amount).toFixed(2)} from ${data.customer_name}
+                        </div>
+                    `;
+                } else {
+                    html = `<div style="font-size: 0.82rem; color: var(--text-dark);">${n.type}</div>`;
+                }
+                return `
+                    <div onclick="markNotifRead(${n.id})" class="notif-item" style="
+                        padding: 0.85rem 1rem;
+                        border-bottom: 1px solid #f5f5f8;
+                        cursor: pointer;
+                        transition: background 0.15s ease;
+                        background: ${isNew ? '#F8F9FE' : 'transparent'};
+                    "
+                    onmouseover="this.style.background='#F0F1F9'"
+                    onmouseout="this.style.background='${isNew ? '#F8F9FE' : 'transparent'}'">
+                        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                            <div style="
+                                width: 34px; height: 34px; border-radius: 10px;
+                                background: ${isNew ? '#E0F2F1' : '#f0f0f5'};
+                                color: ${isNew ? '#00695C' : 'var(--text-muted)'};
+                                display: flex; align-items: center; justify-content: center;
+                                flex-shrink: 0; font-size: 0.9rem;
+                            ">
+                                <i class="bi bi-receipt"></i>
+                            </div>
+                            <div style="flex: 1; min-width: 0;">
+                                ${html}
+                                <div style="font-size: 0.7rem; color: #bbb; margin-top: 4px;">
+                                    ${timeAgo(n.created_at)}
+                                </div>
+                            </div>
+                            ${isNew ? '<span style="width: 8px; height: 8px; border-radius: 50%; background: #6C63FF; flex-shrink: 0; margin-top: 4px;"></span>' : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function timeAgo(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diffMs = now - date;
+            const mins = Math.floor(diffMs / 60000);
+            if (mins < 1) return 'Just now';
+            if (mins < 60) return mins + 'm ago';
+            const hrs = Math.floor(mins / 60);
+            if (hrs < 24) return hrs + 'h ago';
+            const days = Math.floor(hrs / 24);
+            return days + 'd ago';
+        }
+
+        function markNotifRead(id) {
+            fetch('{{ url('admin/notifications') }}/' + id + '/read', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                .then(res => res.json())
+                .then(() => {
+                    fetchNotifs();
+                })
+                .catch(() => {});
+        }
+
+        function markAllRead() {
+            fetch('{{ route('admin.notifications.read-all') }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' } })
+                .then(res => res.json())
+                .then(() => {
+                    fetchNotifs();
+                })
+                .catch(() => {});
+        }
+
+        function checkNewNotifs() {
+            fetch('{{ route('admin.notifications.index') }}')
+                .then(res => res.json())
+                .then(data => {
+                    const prevBadge = document.getElementById('notif-badge');
+                    const prevCount = prevBadge.style.display !== 'none' ? parseInt(prevBadge.textContent) : 0;
+                    showNotifBadge(data.unread_count);
+
+                    // Check for truly new notifications (newer than our last seen)
+                    const newNotifs = data.notifications.filter(n => n.id > lastNotifId && !n.is_read);
+                    if (newNotifs.length > 0 && lastNotifId > 0) {
+                        // Show browser notification
+                        const latest = newNotifs[0];
+                        const notifData = typeof latest.data === 'string' ? JSON.parse(latest.data) : latest.data;
+                        showBrowserNotification(notifData);
+                        // Refresh badge immediately
+                        showNotifBadge(data.unread_count);
+                    }
+
+                    if (data.notifications.length > 0) {
+                        lastNotifId = Math.max(...data.notifications.map(n => n.id));
+                    }
+
+                    // If dropdown is already open, refresh the list
+                    if (notifDropdownOpen) {
+                        renderNotifList(data.notifications);
+                    }
+                })
+                .catch(() => {});
+        }
+
+        function showBrowserNotification(data) {
+            if (!("Notification" in window)) return;
+
+            if (Notification.permission === "granted") {
+                createNotif(data);
+            } else if (Notification.permission !== "denied") {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        createNotif(data);
+                    }
+                });
+            }
+        }
+
+        function createNotif(data) {
+            const notif = new Notification("🛒 New Order!", {
+                body: `${data.customer_name} placed an order for $${parseFloat(data.total_amount).toFixed(2)}`,
+                icon: '/favicon.ico',
+                tag: 'order-' + data.order_id,
+            });
+            notif.onclick = function() {
+                window.open('{{ route('admin.orders.index') }}', '_blank');
+                this.close();
+            };
+            // Close after 8 seconds
+            setTimeout(() => notif.close(), 8000);
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            const group = document.querySelector('.notification-group');
+            if (group && !group.contains(e.target)) {
+                const dropdown = document.getElementById('notif-dropdown');
+                if (dropdown) {
+                    dropdown.style.display = 'none';
+                    notifDropdownOpen = false;
+                }
+            }
+        });
+
+        // Initialize: request notification permission and start polling
+        document.addEventListener('DOMContentLoaded', function() {
+            // Request notification permission
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+
+            // Initial fetch
+            fetchNotifs();
+
+            // Poll every 15 seconds
+            notifPollInterval = setInterval(checkNewNotifs, 15000);
+        });
+    </script>
+
+    <style>
+        .btn-notif-bell:hover {
+            background: #f0f0f5 !important;
+            color: var(--text-dark) !important;
+        }
+        .notif-item:last-child {
+            border-bottom: none !important;
+        }
+    </style>
 </body>
 </html>

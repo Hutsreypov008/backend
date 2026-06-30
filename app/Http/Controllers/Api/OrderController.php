@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderItem;
 use Illuminate\Http\Request;
@@ -96,6 +97,17 @@ class OrderController extends Controller
             }
 
             Cart::where('user_id', $user->id)->delete();
+
+            // Create an admin notification for the new order
+            Notification::create([
+                'type' => 'new_order',
+                'data' => [
+                    'order_id' => $order->id,
+                    'total_amount' => $totalAmount,
+                    'customer_name' => $user->name,
+                    'customer_email' => $user->email,
+                ],
+            ]);
 
             return $order->load('items.product');
         });

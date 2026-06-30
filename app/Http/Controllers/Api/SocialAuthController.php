@@ -15,8 +15,13 @@ class SocialAuthController extends Controller
      */
     public function redirectToGoogle()
     {
+        // Store the frontend URL so we can redirect back after Google callback
+        // Google's OAuth 'state' parameter echoes this back to us
+        $frontendUrl = request()->query('frontend_url', env('FRONTEND_URL', ''));
+
         return Socialite::driver('google')
             ->stateless()
+            ->with(['state' => $frontendUrl])
             ->redirect();
     }
 
@@ -25,10 +30,14 @@ class SocialAuthController extends Controller
      */
     public function handleGoogleCallback()
     {
+        // Retrieve the frontend URL from the 'state' parameter echoed back by Google
+        // Fallback to FRONTEND_URL env, then to localhost:5173
+        $frontendUrl = request()->input('state', env('FRONTEND_URL', 'http://localhost:5173')) ?: 'http://localhost:5173';
+
         try {
             $googleUser = Socialite::driver('google')->stateless()->user();
         } catch (\Exception $e) {
-            return redirect(env('FRONTEND_URL', 'http://localhost:5173') . '/login?error=' . urlencode('Google authentication failed. Please try again.'));
+            return redirect($frontendUrl . '/login?error=' . urlencode('Google authentication failed. Please try again.'));
         }
 
         // Check if user already exists with this google_id
@@ -66,8 +75,7 @@ class SocialAuthController extends Controller
         // Generate Sanctum token
         $token = $user->createToken('api-token')->plainTextToken;
 
-        // Build the redirect URL with URL-encoded token for the frontend
-        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        // Build the redirect URL — uses the dynamic frontend_url from the state parameter
         $redirectUrl = "{$frontendUrl}/auth/callback?token=" . urlencode($token);
 
         return redirect($redirectUrl);
