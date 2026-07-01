@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use App\Models\Order;
+use App\Models\SpinReward;
 use Illuminate\Http\Request;
 
 class OrderController extends Controller
@@ -21,7 +22,15 @@ class OrderController extends Controller
     {
         $order->load('user', 'items.product');
 
-        return view('admin.orders.show', compact('order'));
+        // Load spin reward if a coupon was applied
+        $spinReward = null;
+        if ($order->coupon_code) {
+            $spinReward = SpinReward::where('coupon_code', $order->coupon_code)
+                ->where('user_id', $order->user_id)
+                ->first();
+        }
+
+        return view('admin.orders.show', compact('order', 'spinReward'));
     }
 
     public function updateStatus(Order $order)

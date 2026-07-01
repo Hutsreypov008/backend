@@ -7,6 +7,7 @@ use App\Models\Cart;
 use App\Models\Notification;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\SpinReward;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -39,6 +40,7 @@ class OrderController extends Controller
             'shipping_name' => 'required|string|max:255',
             'shipping_phone' => 'required|string|max:50',
             'shipping_address' => 'required|string',
+            'coupon_code' => 'nullable|string|max:20',
         ]);
 
         $user = $request->user();
@@ -62,16 +64,51 @@ class OrderController extends Controller
             }
         }
 
-        $order = DB::transaction(function () use ($validated, $user, $cartItems) {
-            $totalAmount = 0;
+        // Validate coupon code if provided
+        $discountPercent = 0;
+        $appliedCouponCode = null;
+
+        if (!empty($validated['coupon_code'])) {
+            $reward = SpinReward::where('coupon_code', $validated['coupon_code'])
+                ->where('user_id', $user->id)
+                ->first();
+
+            if (!$reward) {
+                return response()->json([
+                    'message' => 'Invalid coupon code.',
+                ], 422);
+            }
+
+            if (!$reward->isValid()) {
+                $reason = $reward->is_used ? 'already been used' : 'expired';
+                return response()->json([
+                    'message' => "This coupon has {$reason}.",
+                ], 422);
+            }
+
+            $discountPercent = (float) $reward->discount_percent;
+            $appliedCouponCode = $reward->coupon_code;
+        }
+
+        $order = DB::transaction(function () use ($validated, $user, $cartItems, $discountPercent, $appliedCouponCode) {
+            $subtotal = 0;
 
             foreach ($cartItems as $cartItem) {
-                $totalAmount += $cartItem->product->price * $cartItem->quantity;
+                $subtotal += $cartItem->product->price * $cartItem->quantity;
             }
+
+            // Calculate discount amount
+            $discountAmount = $discountPercent > 0
+                ? round($subtotal * ($discountPercent / 100), 2)
+                : 0;
+
+            $totalAmount = $subtotal - $discountAmount;
 
             $order = Order::create([
                 'user_id' => $user->id,
-                'total_amount' => $totalAmount,
+                'total_amount' => max($totalAmount, 0),
+                'discount_amount' => $discountAmount,
+                'coupon_code' => $appliedCouponCode,
                 'status' => 'pending',
                 'shipping_name' => $validated['shipping_name'],
                 'shipping_phone' => $validated['shipping_phone'],
@@ -80,7 +117,7 @@ class OrderController extends Controller
 
             foreach ($cartItems as $cartItem) {
                 $product = $cartItem->product;
-                $subtotal = $product->price * $cartItem->quantity;
+                $itemSubtotal = $product->price * $cartItem->quantity;
 
                 OrderItem::create([
                     'order_id' => $order->id,
@@ -88,7 +125,7 @@ class OrderController extends Controller
                     'product_name' => $product->name,
                     'price' => $product->price,
                     'quantity' => $cartItem->quantity,
-                    'subtotal' => $subtotal,
+                    'subtotal' => $itemSubtotal,
                 ]);
 
                 $product->update([
@@ -98,6 +135,15 @@ class OrderController extends Controller
 
             Cart::where('user_id', $user->id)->delete();
 
+            // Mark the spin reward as used
+            if ($appliedCouponCode) {
+                SpinReward::where('coupon_code', $appliedCouponCode)
+                    ->update([
+                        'is_used' => true,
+                        'used_at' => now(),
+                    ]);
+            }
+
             // Create an admin notification for the new order
             Notification::create([
                 'type' => 'new_order',
@@ -106,6 +152,8 @@ class OrderController extends Controller
                     'total_amount' => $totalAmount,
                     'customer_name' => $user->name,
                     'customer_email' => $user->email,
+                    'discount_amount' => $discountAmount,
+                    'coupon_code' => $appliedCouponCode,
                 ],
             ]);
 

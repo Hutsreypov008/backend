@@ -217,6 +217,46 @@
         font-size: 0.82rem;
     }
 
+    /* ==================== COUPON BADGES ==================== */
+    .coupon-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 100px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .coupon-badge i { font-size: 0.6rem; }
+
+    .coupon-badge.active {
+        background: #D1FAE5;
+        color: #059669;
+    }
+
+    .coupon-badge.used {
+        background: #FEF3C7;
+        color: #D97706;
+    }
+
+    .coupon-code {
+        font-family: 'Courier New', monospace;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #8B5CF6;
+        letter-spacing: 0.3px;
+        background: #F5F3FF;
+        padding: 0.15rem 0.5rem;
+        border-radius: 6px;
+    }
+
+    .coupon-none {
+        color: #ccc;
+        font-size: 0.9rem;
+    }
+
     /* ==================== EMPTY STATE ==================== */
     .user-empty {
         text-align: center;
@@ -281,6 +321,7 @@
                     <th style="width: 60px;">#</th>
                     <th>User</th>
                     <th>Role</th>
+                    <th>Coupon</th>
                     <th>Joined</th>
                 </tr>
             </thead>
@@ -316,11 +357,32 @@
                                 {{ $isAdmin ? 'Admin' : 'Customer' }}
                             </span>
                         </td>
+                        <td>
+                            @php
+                                $userCoupons = $user->spinRewards->whereNotNull('coupon_code');
+                                $activeCoupon = $userCoupons->firstWhere('is_used', false);
+                                $usedCoupon = $userCoupons->firstWhere('is_used', true);
+                                $latest = $activeCoupon ?? $usedCoupon ?? null;
+                            @endphp
+                            @if($latest)
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <span class="coupon-badge {{ $latest->is_used ? 'used' : 'active' }}">
+                                        <i class="bi {{ $latest->is_used ? 'bi-check2-all' : 'bi-tag-fill' }}"></i>
+                                        {{ $latest->discount_percent }}%
+                                    </span>
+                                    @if(!$latest->is_used && $latest->coupon_code)
+                                        <span class="coupon-code">{{ $latest->coupon_code }}</span>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="coupon-none">—</span>
+                            @endif
+                        </td>
                         <td><span class="user-date">{{ optional($user->created_at)->format('M d, Y') }}</span></td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4">
+                        <td colspan="5">
                             <div class="user-empty">
                                 <span class="user-empty-icon">👤</span>
                                 <h6>No users yet</h6>

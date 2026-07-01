@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ReviewController;
 use App\Http\Controllers\Api\NotificationController as ApiNotificationController;
+use App\Http\Controllers\Api\SpinController;
 use App\Http\Controllers\Api\WishlistController;
 use Illuminate\Support\Facades\Route;
 
@@ -47,6 +48,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show']);
 
     Route::post('/products/{product}/reviews', [ReviewController::class, 'store']);
+
+    // Spin the wheel — new user welcome reward
+    Route::get('/spin/status', [SpinController::class, 'status']);
+    Route::post('/spin', [SpinController::class, 'spin']);
+    Route::get('/spin/my-reward', [SpinController::class, 'myReward']);
 
     Route::get('/notifications', [ApiNotificationController::class, 'index']);
     Route::post('/notifications/{id}/read', [ApiNotificationController::class, 'markRead']);

@@ -482,6 +482,35 @@
                     </form>
                 @endif
             </div>
+            @if($order->coupon_code && $order->discount_amount > 0)
+                <div class="ord-divider"></div>
+                <div class="ord-info-item">
+                    <span class="label">
+                        <i class="bi bi-tags-fill" style="color: #F59E0B;"></i>
+                        Discount
+                    </span>
+                    <span class="value" style="color: #10B981; font-weight: 700;">
+                        -${{ number_format($order->discount_amount, 2) }}
+                    </span>
+                </div>
+                <div class="ord-info-item">
+                    <span class="label">Discount %</span>
+                    <span class="value" style="color: #F59E0B; font-weight: 800; font-size: 1.05rem;">
+                        {{ $spinReward?->discount_percent ?? 0 }}%
+                    </span>
+                </div>
+                <div class="ord-info-item">
+                    <span class="label">Coupon Code</span>
+                    <span class="value" style="font-family: 'Courier New', monospace; font-weight: 700; color: #8B5CF6; font-size: 0.95rem; letter-spacing: 0.5px;">
+                        {{ $order->coupon_code }}
+                    </span>
+                </div>
+            @else
+                <div class="ord-info-item">
+                    <span class="label">Discount</span>
+                    <span class="value" style="color: var(--text-muted);">No discount applied</span>
+                </div>
+            @endif
             <div class="ord-divider"></div>
             <div class="ord-info-item">
                 <span class="label">Total Amount</span>
@@ -527,6 +556,14 @@
                 @endforeach
             </tbody>
             <tfoot>
+                @if($order->coupon_code && $order->discount_amount > 0)
+                    <tr>
+                        <td colspan="3" class="total-label" style="padding-top: 0.6rem;">Discount</td>
+                        <td class="total-value" style="color: #10B981; font-size: 0.9rem; font-weight: 600;">
+                            -${{ number_format($order->discount_amount, 2) }}
+                        </td>
+                    </tr>
+                @endif
                 <tr>
                     <td colspan="3" class="total-label">Total</td>
                     <td class="total-value">${{ number_format($order->total_amount, 2) }}</td>
